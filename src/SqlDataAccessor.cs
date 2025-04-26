@@ -12,8 +12,16 @@ namespace ProjectControlSystem.src
 	{
 		private readonly SqlConnection m_conn;
 
-		public SqlDataAccessor(string connectionString)
+		public SqlDataAccessor()
 		{
+			string dbFolder = AppDomain.CurrentDomain.BaseDirectory;
+			string dbPath = Path.Combine(dbFolder, "Database.mdf");
+
+			string connectionString = $@"Data Source=(LocalDB)\MSSQLLocalDB;
+                              AttachDbFilename={dbPath};
+                              Integrated Security=True;
+                              Connect Timeout=30";
+
 			m_conn = new SqlConnection(connectionString);
 			m_conn.Open();
 		}

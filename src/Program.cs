@@ -1,13 +1,11 @@
-﻿
-
-using ProjectControlSystem.src.commands;
+﻿using ProjectControlSystem.src.commands;
 
 namespace ProjectControlSystem.src
 {
 	class Program
 	{
 		static readonly SessionData sessionData = new();
-		static readonly IDataAccessor data = new SqlDataAccessor("Data Source=(LocalDB)\\MSSQLLocalDB;AttachDbFilename=E:\\Projects\\TestWork\\ProjectControlSystem\\bd\\Database.mdf;Integrated Security=True");
+		static readonly IDataAccessor data = new SqlDataAccessor();
 		static readonly CommandsManager commandsManager = new();
 		
 		static void RegisterCommands()
