@@ -1,16 +1,10 @@
 ﻿using ProjectControlSystem.src.data;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace ProjectControlSystem.src.commands
 {
 	internal class AddUserCommand : ICommand
 	{
 		private readonly IDataAccessor m_dataAccessor;
-		private string? errorMessage;
+		private string? m_errorMessage = null;
 
 		public AddUserCommand(IDataAccessor data)
 		{
@@ -32,21 +26,23 @@ namespace ProjectControlSystem.src.commands
 
 			User user = new(login, password, role);
 
-			if (m_dataAccessor.AddUser(user))
+			var addUserResult = m_dataAccessor.AddUser(user);
+
+			if (addUserResult.IsSuccess)
 			{
 				Console.WriteLine("Новый пользователь добавлен");
 				return true;
 			}
 			else
 			{
-				errorMessage = "Не удалось добавить пользователя, убедитесть, что пользователей с таким же логином не существует";
+				m_errorMessage = addUserResult.ErrorMessage;
 				return false;
 			}
 		}
 
 		bool InvalidInputResult()
 		{
-			errorMessage = "Неверный формат ввода, используйте следующий формат ввода: \n" + GetName() + " " + GetParameters();
+			m_errorMessage = "Неверный формат ввода, используйте следующий формат ввода: \n" + GetName() + " " + GetParameters();
 			return false;
 		}
 
@@ -62,10 +58,7 @@ namespace ProjectControlSystem.src.commands
 
 		public string GetCommandParameters() => GetParameters();
 
-		public string? GetErrorMessage()
-		{
-			return errorMessage;
-		}
+		public string? GetErrorMessage() => m_errorMessage;
 
 		public int GetPermissionLevel() => 2;
 	}

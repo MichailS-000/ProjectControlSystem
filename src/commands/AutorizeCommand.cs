@@ -4,7 +4,7 @@
 	{
 		private readonly IDataAccessor m_accessor;
 		private readonly SessionData m_sessionData;
-		private string? errorMessage = null;
+		private string? m_errorMessage = null;
 
 		public AuthorizeCommand(IDataAccessor accessor, SessionData sessionData)
 		{
@@ -24,26 +24,26 @@
 			string login = loginData[0];
 			string password = loginData[1];
 
-			var user = m_accessor.GetUser(login, password);
+			var authUserResult = m_accessor.AuthUser(login, password);
 
-			if (user == null)
+			if (authUserResult.IsSuccess)
 			{
-				errorMessage = "Пользователь не найден";
-				return false;
-			}
-			else
-			{
-				m_sessionData.currentUser = user;
+				m_sessionData.currentUser = authUserResult.Result;
 
 				Console.WriteLine("Вход выполнен, используйте help для просмотра доступных команд");
 
 				return true;
 			}
+			else
+			{
+				Console.WriteLine(authUserResult.ErrorMessage);
+				return false;
+			}
 		}
 
 		bool InvalidInputResult()
 		{
-			errorMessage = "Неверный формат ввода, используйте следующий формат ввода: \n" + GetName() + " " + GetParameters();
+			m_errorMessage = "Неверный формат ввода, используйте следующий формат ввода: \n" + GetName() + " " + GetParameters();
 			return false;
 		}
 
@@ -61,6 +61,6 @@
 
 		public int GetPermissionLevel() => 0;
 
-		public string? GetErrorMessage() => errorMessage;
+		public string? GetErrorMessage() => m_errorMessage;
 	}
 }

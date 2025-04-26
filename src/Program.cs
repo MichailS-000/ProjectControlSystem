@@ -14,6 +14,9 @@ namespace ProjectControlSystem.src
 		{
 			commandsManager.RegisterCommand(AuthorizeCommand.GetName(), new AuthorizeCommand(data, sessionData));
 			commandsManager.RegisterCommand(AddUserCommand.GetName(), new AddUserCommand(data));
+			commandsManager.RegisterCommand(AddTaskCommand.GetName(), new AddTaskCommand(data));
+			commandsManager.RegisterCommand(GetTasksCommand.GetName(), new GetTasksCommand(data, sessionData));
+			commandsManager.RegisterCommand(ChangeTaskStatusCommand.GetName(), new ChangeTaskStatusCommand(data, sessionData));
 		}
 
 		public static void Main()

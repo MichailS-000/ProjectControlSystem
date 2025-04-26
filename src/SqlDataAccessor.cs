@@ -23,7 +23,37 @@ namespace ProjectControlSystem.src
 			m_conn?.Close();
 		}
 
-		public bool AddUser(User user)
+		public IDataAccessor.DataAccessResult AddTask(ProjectTask task)
+		{
+			const string addTaskCommand = "INSERT INTO Tasks (UserId, TaskName, TaskState, ProjectID, Description) VALUES" +
+				" (@UserId, @TaskName, @TaskState, @ProjectId, @Description)";
+
+			try
+			{
+				using (var command = new SqlCommand(addTaskCommand, m_conn))
+				{
+					command.Parameters.Add("@UserId", System.Data.SqlDbType.Int).Value = task.UserID;
+					command.Parameters.Add("@TaskName", System.Data.SqlDbType.NVarChar).Value = task.Name;
+					command.Parameters.Add("@TaskState", System.Data.SqlDbType.NVarChar).Value = task.TaskState;
+					command.Parameters.Add("@ProjectId", System.Data.SqlDbType.Int).Value = task.ProjectID;
+					command.Parameters.Add("@Description", System.Data.SqlDbType.NVarChar).Value = task.Description;
+
+					command.ExecuteNonQuery();
+
+					return new IDataAccessor.DataAccessResult(true, null);
+				}
+			}
+			catch (SqlException ex) when (ex.ErrorCode == 547)
+			{
+				return new IDataAccessor.DataAccessResult(false, $"Задача не может быть в состоянии \"{task.TaskState}\"");
+			}
+			catch (Exception ex)
+			{
+				return new IDataAccessor.DataAccessResult(false, ex.Message);
+			}
+		}
+
+		public IDataAccessor.DataAccessResult AddUser(User user)
 		{
 			const string addUserCommand = "INSERT INTO Users (Login, Password, Role) VALUES (@Login, @Password, @Role)";
 
@@ -37,22 +67,94 @@ namespace ProjectControlSystem.src
 
 					command.ExecuteNonQuery();
 
-					return true;
+					return new IDataAccessor.DataAccessResult(true, null);
+				}
+			}
+			catch (SqlException ex) when (ex.ErrorCode == 547)
+			{
+				return new IDataAccessor.DataAccessResult(false, $"Пользователь не может иметь роль \"{user.Role}\"");
+			}
+			catch (Exception ex)
+			{
+				return new IDataAccessor.DataAccessResult(false, ex.Message);
+			}
+		}
+
+		public IDataAccessor.DataAccessResult<ProjectTask> GetTask(int taskID)
+		{
+			const string getTaskByIDCommand = "SELECT * FROM Tasks WHERE TaskID = @TaskId";
+
+			try
+			{
+				using (var command = new SqlCommand(getTaskByIDCommand, m_conn))
+				{
+					command.Parameters.Add("@TaskId", System.Data.SqlDbType.Int).Value = taskID;
+
+					using (var reader = command.ExecuteReader(System.Data.CommandBehavior.SingleRow))
+					{
+						if (reader.Read())
+						{
+							ProjectTask projectTask = new(
+								reader.GetInt32(reader.GetOrdinal("UserId")),
+								reader.GetString(reader.GetOrdinal("TaskName")),
+								reader.GetString(reader.GetOrdinal("TaskState")),
+								reader.GetInt32(reader.GetOrdinal("ProjectID")),
+								reader.GetString(reader.GetOrdinal("Description")),
+								reader.GetInt32(reader.GetOrdinal("TaskID")));
+
+							return new IDataAccessor.DataAccessResult<ProjectTask>(true, projectTask, null);
+						}
+						else
+						{
+							return new IDataAccessor.DataAccessResult<ProjectTask>(false, null, "Задача не найдена");
+						}
+					}
 				}
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine("ERROR: " + ex.Message);
-				return false;
+				return new IDataAccessor.DataAccessResult<ProjectTask>(false, null, ex.Message);
 			}
 		}
 
-		public IEnumerable<ProjectTask> GetTasksOfUser(User user)
+		public IDataAccessor.DataAccessResult<IEnumerable<ProjectTask>> GetTasksOfUser(User user)
 		{
-			throw new NotImplementedException();
+			const string getAllTasksOfUserCommand = "SELECT * FROM Tasks WHERE UserId = @UserId";
+
+			HashSet<ProjectTask> userTasks = new();
+
+			try
+			{
+				using (var command = new SqlCommand(getAllTasksOfUserCommand, m_conn))
+				{
+					command.Parameters.Add("@UserId", System.Data.SqlDbType.NVarChar).Value = user.Id;
+
+					using (var reader = command.ExecuteReader())
+					{
+						while (reader.Read())
+						{
+							var task = new ProjectTask(
+								reader.GetInt32(reader.GetOrdinal("UserId")),
+								reader.GetString(reader.GetOrdinal("TaskName")),
+								reader.GetString(reader.GetOrdinal("TaskState")),
+								reader.GetInt32(reader.GetOrdinal("ProjectID")),
+								reader.GetString(reader.GetOrdinal("Description")),
+								reader.GetInt32(reader.GetOrdinal("TaskID")));
+
+							userTasks.Add(task);
+						}
+
+						return new IDataAccessor.DataAccessResult<IEnumerable<ProjectTask>>(true, userTasks, null);
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				return new IDataAccessor.DataAccessResult<IEnumerable<ProjectTask>>(false, null, ex.Message);
+			}
 		}
 
-		public User? GetUser(string login, string password)
+		public IDataAccessor.DataAccessResult<User> AuthUser(string login, string password)
 		{
 			const string getUserCommand = "SELECT * FROM Users WHERE Login = @Login AND Password = @Password";
 
@@ -67,23 +169,128 @@ namespace ProjectControlSystem.src
 					{
 						if (reader.Read())
 						{
-							return new User(
+							User user = new(
 								reader.GetInt32(reader.GetOrdinal("Id")),
 								reader.GetString(reader.GetOrdinal("Login")),
 								reader.GetString(reader.GetOrdinal("Password")),
 								reader.GetString(reader.GetOrdinal("Role")));
+
+							return new IDataAccessor.DataAccessResult<User>(true, user, null);
 						}
 						else
 						{
-							return null;
+							return new IDataAccessor.DataAccessResult<User>(false, null, "Неверный логин или пароль");
 						}
 					}
 				}
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine("ERROR: " + ex.Message);
-				return null;
+				return new IDataAccessor.DataAccessResult<User>(false, null, ex.Message);
+			}
+		}
+
+		public IDataAccessor.DataAccessResult SetTask(ProjectTask task)
+		{
+			const string updateTaskCommand = "UPDATE Tasks SET UserId = @UserId, TaskName = @TaskName, TaskState = @TaskState, ProjectID = @ProjectId, Description = @Description WHERE TaskID = @TaskID";
+
+			try
+			{
+				using (var command = new SqlCommand(updateTaskCommand, m_conn))
+				{
+					command.Parameters.Add("@UserId", System.Data.SqlDbType.Int).Value = task.UserID;
+					command.Parameters.Add("@TaskName", System.Data.SqlDbType.NVarChar).Value = task.Name;
+					command.Parameters.Add("@TaskState", System.Data.SqlDbType.NVarChar).Value = task.TaskState;
+					command.Parameters.Add("@ProjectId", System.Data.SqlDbType.NVarChar).Value = task.ProjectID;
+					command.Parameters.Add("@Description", System.Data.SqlDbType.NVarChar).Value = task.Description;
+					command.Parameters.Add("@TaskID", System.Data.SqlDbType.Int).Value = task.TaskID;
+
+					if (command.ExecuteNonQuery() > 0)
+					{
+						return new IDataAccessor.DataAccessResult(true, null);
+					}
+					else
+					{
+						return new IDataAccessor.DataAccessResult(false, "Задача не найдена");
+					}
+				}
+			}
+			catch (SqlException ex) when (ex.ErrorCode == 547)
+			{
+				return new IDataAccessor.DataAccessResult(false, $"Задача не может быть в состоянии \"{task.TaskState}\"");
+			}
+			catch (Exception ex)
+			{
+				return new IDataAccessor.DataAccessResult(false, ex.Message);
+			}
+		}
+
+		public IDataAccessor.DataAccessResult<int> GetUserID(string login)
+		{
+			const string getUserIdByLoginCommand = "SELECT Id FROM Users WHERE Login = @Login";
+
+			try
+			{
+				using (var command = new SqlCommand(getUserIdByLoginCommand, m_conn))
+				{
+					command.Parameters.Add("@Login", System.Data.SqlDbType.NVarChar).Value = login;
+				
+					using (var reader = command.ExecuteReader())
+					{
+						if (reader.Read())
+						{
+							int id = reader.GetInt32(reader.GetOrdinal("Id"));
+
+							return new IDataAccessor.DataAccessResult<int>(true, id, null);
+						}
+						else
+						{
+							return new IDataAccessor.DataAccessResult<int>(false, -1, "Пользователь не найден");
+						}
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				return new IDataAccessor.DataAccessResult<int>(false, -1, ex.Message);
+			}
+		}
+
+		public IDataAccessor.DataAccessResult<ProjectTask> GetTask(int userID, string taskName)
+		{
+			const string getTaskCommand = "SELECT * FROM Tasks WHERE UserId = @UserId AND TaskName = @TaskName";
+
+			try
+			{
+				using (var command = new SqlCommand(getTaskCommand, m_conn))
+				{
+					command.Parameters.Add("@UserId", System.Data.SqlDbType.Int).Value = userID;
+					command.Parameters.Add("@TaskName", System.Data.SqlDbType.NVarChar).Value = taskName;
+
+					using (var reader = command.ExecuteReader())
+					{
+						if (reader.Read())
+						{
+							ProjectTask projectTask = new(
+								reader.GetInt32(reader.GetOrdinal("UserId")),
+								reader.GetString(reader.GetOrdinal("TaskName")),
+								reader.GetString(reader.GetOrdinal("TaskState")),
+								reader.GetInt32(reader.GetOrdinal("ProjectID")),
+								reader.GetString(reader.GetOrdinal("Description")),
+								reader.GetInt32(reader.GetOrdinal("TaskID")));
+
+							return new IDataAccessor.DataAccessResult<ProjectTask>(true, projectTask, null);
+						}
+						else
+						{
+							return new IDataAccessor.DataAccessResult<ProjectTask>(false, null, "Задача не найдена");
+						}
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				return new IDataAccessor.DataAccessResult<ProjectTask>(false, null, ex.Message);
 			}
 		}
 	}
