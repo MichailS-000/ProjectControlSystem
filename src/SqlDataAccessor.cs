@@ -45,7 +45,7 @@ namespace ProjectControlSystem.src
 					return new IDataAccessor.DataAccessResult<int>(true, 0, null);
 				}
 			}
-			catch (SqliteException ex) when (ex.SqliteErrorCode == 547)
+			catch (SqliteException ex) when (ex.SqliteErrorCode == 19)
 			{
 				return new IDataAccessor.DataAccessResult<int>(false, -1, $"Задача не может быть в состоянии \"{task.TaskState}\"");
 			}
@@ -76,9 +76,20 @@ namespace ProjectControlSystem.src
 					return new IDataAccessor.DataAccessResult<int>(true, 0, null);
 				}
 			}
-			catch (SqliteException ex) when (ex.SqliteErrorCode == 547)
+			catch (SqliteException ex) when (ex.SqliteErrorCode == 19)
 			{
-				return new IDataAccessor.DataAccessResult<int>(false, -1, $"Пользователь не может иметь роль \"{user.Role}\"");
+				if (ex.Message.Contains("CHECK"))
+				{
+					return new IDataAccessor.DataAccessResult<int>(false, -1, $"Пользователь не может иметь роль \"{user.Role}\"");
+				}
+				else if (ex.Message.Contains("UNIQUE"))
+				{
+					return new IDataAccessor.DataAccessResult<int>(false, -1, "Пользователь с таким логином уже существует");
+				}
+				else
+				{
+					return new IDataAccessor.DataAccessResult<int>(false, -1, $"Ошибка код: {ex.SqliteErrorCode} сообщение: {ex.Message}");
+				}
 			}
 			catch (SqliteException ex)
 			{
@@ -225,7 +236,7 @@ namespace ProjectControlSystem.src
 					}
 				}
 			}
-			catch (SqliteException ex) when (ex.SqliteErrorCode == 547)
+			catch (SqliteException ex) when (ex.SqliteErrorCode == 19)
 			{
 				return new IDataAccessor.DataAccessResult<int>(false, -1, $"Задача не может быть в состоянии \"{task.TaskState}\"");
 			}
