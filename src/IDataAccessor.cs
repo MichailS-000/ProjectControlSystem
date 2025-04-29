@@ -9,18 +9,6 @@ namespace ProjectControlSystem.src
 {
 	public interface IDataAccessor
 	{
-		public class DataAccessResult
-		{
-			public bool IsSuccess { get; }
-			public string? ErrorMessage { get; }
-
-			public DataAccessResult(bool isSuccess, string? errorMessage)
-			{
-				IsSuccess = isSuccess;
-				ErrorMessage = errorMessage;
-			}
-		}
-
 		public class DataAccessResult<T>
 		{
 			public bool IsSuccess { get; }
@@ -38,10 +26,10 @@ namespace ProjectControlSystem.src
 		DataAccessResult<int> GetUserID(string login);
 		DataAccessResult<User> AuthUser(string login, string password);
 		DataAccessResult<IEnumerable<ProjectTask>> GetTasksOfUser(User user);
-		DataAccessResult AddUser(User user);
-		DataAccessResult SetTask(ProjectTask task);
-		DataAccessResult AddTask(ProjectTask task);
-		DataAccessResult<ProjectTask> GetTask(int taskID);
-		DataAccessResult<ProjectTask> GetTask(int userID, string taskName);
+		DataAccessResult<int> AddUser(User user);
+		DataAccessResult<int> UpdateTask(ProjectTask task);
+		DataAccessResult<int> AddTask(ProjectTask task);
+		DataAccessResult<ProjectTask> GetTaskByID(int taskID);
+		DataAccessResult<ProjectTask> GetTaskByName(int userID, string taskName);
 	}
 }

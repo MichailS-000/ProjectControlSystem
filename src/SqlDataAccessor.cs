@@ -33,7 +33,7 @@ namespace ProjectControlSystem.src
 			m_conn?.Close();
 		}
 
-		public IDataAccessor.DataAccessResult AddTask(ProjectTask task)
+		public IDataAccessor.DataAccessResult<int> AddTask(ProjectTask task)
 		{
 			const string addTaskCommand = "INSERT INTO Tasks (UserId, TaskName, TaskState, ProjectID, Description) VALUES" +
 				" (@UserId, @TaskName, @TaskState, @ProjectId, @Description)";
@@ -50,20 +50,24 @@ namespace ProjectControlSystem.src
 
 					command.ExecuteNonQuery();
 
-					return new IDataAccessor.DataAccessResult(true, null);
+					return new IDataAccessor.DataAccessResult<int>(true, 0, null);
 				}
 			}
-			catch (SqlException ex) when (ex.ErrorCode == 547)
+			catch (SqlException ex) when (ex.Number == 547)
 			{
-				return new IDataAccessor.DataAccessResult(false, $"Задача не может быть в состоянии \"{task.TaskState}\"");
+				return new IDataAccessor.DataAccessResult<int>(false, -1, $"Задача не может быть в состоянии \"{task.TaskState}\"");
+			}
+			catch (SqlException ex)
+			{
+				return new IDataAccessor.DataAccessResult<int>(false, -1, $"Ошибка код: {ex.Number} сообщение: {ex.Message}");
 			}
 			catch (Exception ex)
 			{
-				return new IDataAccessor.DataAccessResult(false, ex.Message);
+				return new IDataAccessor.DataAccessResult<int>(false, -1, ex.Message);
 			}
 		}
 
-		public IDataAccessor.DataAccessResult AddUser(User user)
+		public IDataAccessor.DataAccessResult<int> AddUser(User user)
 		{
 			const string addUserCommand = "INSERT INTO Users (Login, Password, Role) VALUES (@Login, @Password, @Role)";
 
@@ -77,20 +81,24 @@ namespace ProjectControlSystem.src
 
 					command.ExecuteNonQuery();
 
-					return new IDataAccessor.DataAccessResult(true, null);
+					return new IDataAccessor.DataAccessResult<int>(true, 0, null);
 				}
 			}
-			catch (SqlException ex) when (ex.ErrorCode == 547)
+			catch (SqlException ex) when (ex.Number == 547)
 			{
-				return new IDataAccessor.DataAccessResult(false, $"Пользователь не может иметь роль \"{user.Role}\"");
+				return new IDataAccessor.DataAccessResult<int>(false, -1, $"Пользователь не может иметь роль \"{user.Role}\"");
+			}
+			catch (SqlException ex)
+			{
+				return new IDataAccessor.DataAccessResult<int>(false, -1, $"Ошибка код: {ex.Number} сообщение: {ex.Message}");
 			}
 			catch (Exception ex)
 			{
-				return new IDataAccessor.DataAccessResult(false, ex.Message);
+				return new IDataAccessor.DataAccessResult<int>(false, -1, ex.Message);
 			}
 		}
 
-		public IDataAccessor.DataAccessResult<ProjectTask> GetTask(int taskID)
+		public IDataAccessor.DataAccessResult<ProjectTask> GetTaskByID(int taskID)
 		{
 			const string getTaskByIDCommand = "SELECT * FROM Tasks WHERE TaskID = @TaskId";
 
@@ -200,7 +208,7 @@ namespace ProjectControlSystem.src
 			}
 		}
 
-		public IDataAccessor.DataAccessResult SetTask(ProjectTask task)
+		public IDataAccessor.DataAccessResult<int> UpdateTask(ProjectTask task)
 		{
 			const string updateTaskCommand = "UPDATE Tasks SET UserId = @UserId, TaskName = @TaskName, TaskState = @TaskState, ProjectID = @ProjectId, Description = @Description WHERE TaskID = @TaskID";
 
@@ -217,21 +225,25 @@ namespace ProjectControlSystem.src
 
 					if (command.ExecuteNonQuery() > 0)
 					{
-						return new IDataAccessor.DataAccessResult(true, null);
+						return new IDataAccessor.DataAccessResult<int>(true, 0, null);
 					}
 					else
 					{
-						return new IDataAccessor.DataAccessResult(false, "Задача не найдена");
+						return new IDataAccessor.DataAccessResult<int>(false, -1, "Задача не найдена");
 					}
 				}
 			}
-			catch (SqlException ex) when (ex.ErrorCode == 547)
+			catch (SqlException ex) when (ex.Number == 547)
 			{
-				return new IDataAccessor.DataAccessResult(false, $"Задача не может быть в состоянии \"{task.TaskState}\"");
+				return new IDataAccessor.DataAccessResult<int>(false, -1, $"Задача не может быть в состоянии \"{task.TaskState}\"");
+			}
+			catch (SqlException ex)
+			{
+				return new IDataAccessor.DataAccessResult<int>(false, -1, $"Ошибка код: {ex.Number} сообщение: {ex.Message}");
 			}
 			catch (Exception ex)
 			{
-				return new IDataAccessor.DataAccessResult(false, ex.Message);
+				return new IDataAccessor.DataAccessResult<int>(false, -1, ex.Message);
 			}
 		}
 
@@ -266,7 +278,7 @@ namespace ProjectControlSystem.src
 			}
 		}
 
-		public IDataAccessor.DataAccessResult<ProjectTask> GetTask(int userID, string taskName)
+		public IDataAccessor.DataAccessResult<ProjectTask> GetTaskByName(int userID, string taskName)
 		{
 			const string getTaskCommand = "SELECT * FROM Tasks WHERE UserId = @UserId AND TaskName = @TaskName";
 

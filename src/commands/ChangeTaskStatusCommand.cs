@@ -29,14 +29,14 @@ namespace ProjectControlSystem.src.commands
 
 			if (taskStatus.Length > 0 && m_sessionData.currentUser != null)
 			{
-				var getTask = m_dataAccessor.GetTask(m_sessionData.currentUser.Id, taskName);
+				var getTask = m_dataAccessor.GetTaskByName(m_sessionData.currentUser.Id, taskName);
 
 				if (getTask.IsSuccess)
 				{
 					var task = getTask.Result;
 					task.TaskState = taskStatus;
 
-					var updateTask = m_dataAccessor.SetTask(task);
+					var updateTask = m_dataAccessor.UpdateTask(task);
 
 					if (updateTask.IsSuccess)
 					{
